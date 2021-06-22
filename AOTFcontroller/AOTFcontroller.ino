@@ -139,7 +139,7 @@ const unsigned long timeOut_ = 1000;
 bool blanking_ = false;
 bool blankOnHigh_ = false;
 bool triggerMode_ = false;
-boolean triggerState_ = false;
+bool triggerState_ = false;
 
 void setup()
 {
@@ -406,7 +406,7 @@ void loop()
 
 	// In trigger mode, we will blank even if blanking is not on.
 	if (triggerMode_) {
-		boolean tmp = PIND & inPinBit_;
+		bool tmp = PIND & inPinBit_;
 		if (tmp != triggerState_) {
 			if (blankOnHigh_ && tmp) {
 				PORTB = 0;
