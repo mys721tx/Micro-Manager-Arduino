@@ -140,6 +140,7 @@ bool blanking_ = false;
 bool blankOnHigh_ = false;
 bool triggerMode_ = false;
 bool triggerState_ = false;
+bool hasTriggered_ = false;
 
 void setup()
 {
@@ -177,8 +178,13 @@ void loop()
 				// Do not set bits 6 and 7 (not sure if this is
 				// needed)
 				currentPattern_ = currentPattern_ & B00111111;
-				if (!blanking_) {
-					PORTB = currentPattern_;
+				if (!hasTriggered_) {
+					hasTriggered_ = true;
+					if (!blanking_) {
+						PORTB = currentPattern_;
+					}
+				} else {
+					PORTB = 0;
 				}
 				Serial.write(byte(1));
 			}
