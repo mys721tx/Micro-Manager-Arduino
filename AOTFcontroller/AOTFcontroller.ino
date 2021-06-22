@@ -11,77 +11,90 @@
  * corresponds to pin 8, bit 1 to pin 9, etc.. Bits 7 and 8 will not be used (and
  * should stay 0).
  *
- * Set digital output command: 1p Where p is the desired digital pattern.
- * Controller will return 1 to indicate succesfull execution.
+ * Set digital output command: 1p
+ * Controller returns 1 on successfully execution
+ * p: Desired digital pattern.
  *
- * Get digital output command: 2 Controller will return 2p. Where p is the
- * current digital output pattern
+ * Get digital output command: 2
+ * Controller returns 2p
+ * p: Current digital pattern.
  *
- * Set Analogue output command: 3xvv Where x is the output channel (either 1 or
- * 2), and vv is the output in a 12-bit significant number. Controller will
- * return 3xvv:
+ * Set analogue output command: 3xvv
+ * Controller returns 3xvv
+ * x: the output channel (either 1 or 2)
+ * vv: the output in a 12-bit significant number.
  *
- * Get Analogue output:  4
+ * Get analogue output: 4
+ * Controller will not return anything
  *
+ * Set digital pattern for trigger mode: 5xd
+ * Controller returns 5xd
+ * x: the number of the pattern (currently, 12 patterns can be stored). x should
+ * be the real number (i.e., not ASCII encoded)
+ * d: the digital pattern to be stored at that position.
  *
- * Set digital patten for triggered mode: 5xd Where x is the number of the
- * pattern (currently, 12 patterns can be stored). and d is the digital pattern
- * to be stored at that position. Note that x should be the real number (i.e.,
- * not  ASCI encoded) Controller will return 5xd
+ * Set the number of digital patterns to be used: 6x
+ * Controller returns 6x
+ * x: the number of digital patterns will be used (currently, up to 12 patterns
+ * maximum). In trigger mode, after reaching this many triggers, the controller
+ * will restart the sequence with the first pattern.
  *
- * Set the Number of digital patterns to be used: 6x Where x indicates how many
- * digital patterns will be used (currently, up to 12 patterns maximum). In
- * triggered mode, after reaching this many triggers, the controller will
- * re-start the sequence with the first pattern. Controller will return 6x
+ * Skip trigger: 7x
+ * Controller will respond with 7x
+ * x: how many digital change events on the trigger input pin will be ignored.
  *
- * Skip trigger: 7x Where x indicates how many digital change events on the
- * trigger input pin will be ignored. Controller will respond with 7x
+ * Start trigger mode: 8
+ * Controller returns 8 to indicate start of trigger mode
  *
- * Start trigger mode: 8 Controller will return 8 to indicate start of triggered
- * mode Stop triggered a 9. Trigger mode will  supersede (but not stop) blanking
- * mode (if it was active)
+ * Stop Trigger mode: 9
+ * Controller returns 9x
+ * x: the number of triggers received during the last trigger mode run.
+ * Note: Trigger mode will supersede (but not stop) blanking mode (if it was
+ * active)
  *
- * Stop Trigger mode: 9 Controller will return 9x where x is the number of
- * triggers received during the last trigger mode run
+ * Set time interval for timed trigger mode: 10xtt
+ * Controller returns 10x
+ * x: the number of the interval (currently, 12 intervals can be stored)
+ * tt: the interval (in ms) in Arduino unsigned int format.
  *
- * Set time interval for timed trigger mode: 10xtt Where x is the number of the
- * interval (currently, 12 intervals can be stored) and tt is the interval (in
- * ms) in Arduino unsigned int format. Controller will return 10x
+ * Sets how often the timed pattern will be repeated: 11x
+ * Controller returns 11x
+ * x: the number of times the output pattern will be repeated.
  *
- * Sets how often the timed pattern will be repeated: 11x This value will be used
- * in timed-trigger mode and sets how often the output pattern will be repeated.
- * Controller will return 11x
+ * Starts timed trigger mode: 12
+ * Controller returns 12.
+ * Note: In timed trigger mode, digital patterns as set with function 5 will
+ * appear on the output pins with intervals (in ms) as set with function 10.
+ * After the number of patterns set with function 6, the pattern will be
+ * repeated for the number of times set with function 11. Any input character
+ * (which will be processed) will stop the pattern generation.
  *
- * Starts timed trigger mode: 12 In timed trigger mode, digital patterns as set
- * with function 5 will appear on the output pins with intervals (in ms) as set
- * with function 10. After the number of patterns set with function 6, the
- * pattern will be repeated for the number of times set with function 11. Any
- * input character (which will be processed) will stop the pattern generation.
- * Controller will retun 12.
+ * Start blanking Mode: 20
+ * Controller returns 20
+ * Note: In blanking mode, zeroes will be written on the output pins when the
+ * trigger pin is low, when the trigger pin is high, the pattern set with
+ * command #1 will be applied to the output pins.
  *
- * Start blanking Mode: 20 In blanking mode, zeroes will be written on the output
- * pins when the trigger pin is low, when the trigger pin is high, the pattern
- * set with command #1 will be applied to the output pins. Controller will return
- * 20
+ * Stop blanking Mode: 21
+ * Controller returns 21
  *
- * Stop blanking Mode: 21 Stops blanking mode. Controller returns 21
+ * Blanking mode trigger direction: 22x
+ * x=0: blank on trigger high, default value.
+ * x=1: blank on trigger low.
+ * Controller returns 22
  *
- * Blanking mode trigger direction: 22x Sets whether to blank on trigger high or
- * trigger low. x=0: blank on trigger high, x=1: blank on trigger low. x=0 is the
- * default Controller returns 22
+ * Get Identification: 30
+ * Controller returns ASCII string "MM-Ard\r\n"
  *
+ * Get Version: 31
+ * Controller returns ASCII encoded version string, e.g. "2\r\n"
  *
- * Get Identification: 30 Returns (asci!) MM-Ard\r\n
+ * Read digital state of analogue input pins 0-5: 40
+ * Controller returns raw value of PINC (two high bits are not used)
  *
- * Get Version: 31 Returns: version number (as ASCI string) \r\n
- *
- * Read digital state of analogue input pins 0-5: 40 Returns raw value of PINC
- * (two high bits are not used)
- *
- * Read analogue state of pint pins 0-5: 41x x=0-5. Returns analogue value as a
- * 10-bit number (0-1023)
- *
- *
+ * Read analogue state of pint pins 0-5: 41x
+ * x=0-5.
+ * Controller returns analogue value as a 10-bit number (0-1023)
  *
  * Possible extensions: Set and Get Mode (low, change, rising, falling) for
  * trigger mode Get digital patterm Get Number of digital patterns
