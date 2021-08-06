@@ -100,13 +100,6 @@
  * trigger mode Get digital patterm Get Number of digital patterns
  */
 
-#if !defined(__AVR_ATmega328P__)
-#define __AVR_ATmega328P__
-#endif
-
-#include <Arduino.h>
-#include <avr/io.h>
-
 unsigned int version_ = 2;
 
 // pin on which to receive the trigger (2 and 3 can be used with interrupts,
