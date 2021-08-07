@@ -22,18 +22,25 @@ enum Command {
 	COMMIT
 };
 
-enum Status { SUCCESS, READY, OVERWRITTEN, EMPTY };
+enum Status { SUCCESS = 'a', READY, TIMEOUT, FULL, EMPTY, OUT_OF_BOUNDS };
 
-typedef struct {
-	uint32_t time;
-	uint8_t pattern;
+typedef struct TimePoint {
+	uint32_t time{};
+	uint8_t pattern{};
+	void clear(void)
+	{
+		time = 0;
+		pattern = 0;
+	}
 } TimePoint;
 
 cppQueue q(sizeof(TimePoint));
 
-TimePoint *pt_cur = new TimePoint{};
+TimePoint pt_cur;
 
 uint32_t t_prev;
+
+uint8_t buf[8];
 
 State state = STANDBY;
 
@@ -53,34 +60,44 @@ void loop()
 		Serial.write(READY);
 	}
 	case CONFIG: {
-		if (wait_serial(timeout)) {
-			Command cmd = (Command)Serial.read();
+		if (wait_serial_read(timeout)) {
+			Serial.readBytes(buf, 1);
+			Command cmd = (Command)buf[0];
 
 			switch (cmd) {
 			case SET: {
-				uint8_t buf[sizeof(TimePoint)];
-				if (wait_serial(timeout)) {
-					for (int i = 0; i < sizeof(TimePoint);
-					     i++) {
-						buf[i] = Serial.read();
-					}
+				pt_cur.clear();
+				if (wait_serial_read(timeout)) {
+					Serial.readBytes(buf, sizeof(uint32_t));
+					memcpy(&pt_cur, buf, sizeof(uint32_t));
+					Serial.readBytes(buf, sizeof(uint8_t));
+					memcpy(&pt_cur, buf, sizeof(uint8_t));
 
-					uint32_t time =
-						((buf[0] & 0xFF) << 24) |
-						((buf[1] & 0xFF) << 16) |
-						((buf[2] & 0xFF) << 8) |
-						(buf[3] & 0xFF);
+					pt_cur.time =
+						__builtin_bswap32(pt_cur.time);
 
-					uint8_t pattern = buf[4];
-					pt_cur->time = time;
-					pt_cur->pattern = pattern;
 					Serial.write(SUCCESS);
+				} else {
+					Serial.write(TIMEOUT);
 				}
 				break;
 			}
 			case GET: {
-				Serial.write(pt_cur->time);
-				Serial.write(pt_cur->pattern);
+				pt_cur.clear();
+				if (wait_serial_read(timeout)) {
+					Serial.readBytes(buf, 1);
+					uint8_t idx = buf[0];
+
+					if (q.peekIdx(&pt_cur, idx)) {
+						Serial.write(SUCCESS);
+					} else {
+						Serial.write(OUT_OF_BOUNDS);
+					}
+				} else {
+					Serial.write(TIMEOUT);
+				}
+				memcpy(buf, &pt_cur, sizeof(TimePoint));
+				Serial.write(buf, sizeof(TimePoint));
 				break;
 			}
 			case COUNT: {
@@ -88,16 +105,15 @@ void loop()
 				break;
 			}
 			case SUBMIT: {
-				if (q.push(pt_cur)) {
+				if (q.push(&pt_cur)) {
 					Serial.write(SUCCESS);
 				} else {
-					Serial.write(OVERWRITTEN);
+					Serial.write(FULL);
 				}
 				break;
 			}
 			case CLEAR: {
-				pt_cur->time = 0;
-				pt_cur->pattern = 0;
+				pt_cur.clear();
 				Serial.write(SUCCESS);
 				break;
 			}
@@ -136,7 +152,7 @@ void loop()
 		attachInterrupt(digitalPinToInterrupt(pin_intr), enable,
 				RISING);
 
-		if (!q.pop(pt_cur)) {
+		if (!q.pop(&pt_cur)) {
 			reset();
 		}
 		state = RUN;
@@ -145,10 +161,10 @@ void loop()
 		uint32_t t_cur = micros();
 
 		if (enabled) {
-			PORTB = pt_cur->pattern & mask_low;
-			if (t_cur - t_prev >= pt_cur->time) {
+			PORTB = pt_cur.pattern & mask_low;
+			if (t_cur - t_prev >= pt_cur.time) {
 				t_prev = t_cur;
-				if (!q.pop(pt_cur)) {
+				if (!q.pop(&pt_cur)) {
 					reset();
 				}
 			}
@@ -165,7 +181,7 @@ void enable()
 	enabled |= true;
 }
 
-bool wait_serial(uint32_t timeout)
+bool wait_serial_read(uint32_t timeout)
 {
 	unsigned long t_start = millis();
 	while (Serial.available() == 0 && (millis() - t_start < timeout)) {
